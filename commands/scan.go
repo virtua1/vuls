@@ -25,8 +25,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	c "github.com/future-architect/vuls/config"
+	"github.com/future-architect/vuls/models"
+	"github.com/future-architect/vuls/report"
 	"github.com/future-architect/vuls/scan"
 	"github.com/future-architect/vuls/util"
 	"github.com/google/subcommands"
@@ -218,9 +221,39 @@ func (p *ScanCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) 
 	util.Log.Info("Detecting IPS identifiers... ")
 	scan.DetectIPSs(p.timeoutSec)
 
+	scannedAt := time.Now()
 	util.Log.Info("Scanning vulnerabilities... ")
-	if err := scan.Scan(p.scanTimeoutSec); err != nil {
+	var results models.ScanResults
+	if results, err = scan.Scan(scannedAt, p.scanTimeoutSec); err != nil {
 		util.Log.Errorf("Failed to scan. err: %+v", err)
+		return subcommands.ExitFailure
+	}
+
+	jsonDir, err := scan.EnsureResultDir(scannedAt)
+	if err != nil {
+		util.Log.Errorf("Failed to ensure result dir: %s", err)
+		return subcommands.ExitFailure
+	}
+	c.Conf.FormatJSON = true
+	ws := []report.ResultWriter{
+		report.LocalFileWriter{CurrentDir: jsonDir},
+	}
+	for _, w := range ws {
+		if err := w.Write(results...); err != nil {
+			util.Log.Errorf("Failed to write summary report: %s", err)
+			return subcommands.ExitFailure
+		}
+	}
+	report.StdoutWriter{}.WriteScanSummary(results...)
+
+	errServerNames := []string{}
+	for _, r := range results {
+		if 0 < len(r.Errors) {
+			errServerNames = append(errServerNames, r.ServerName)
+		}
+	}
+	if 0 < len(errServerNames) {
+		util.Log.Errorf("An error occurred on: %s", errServerNames)
 		return subcommands.ExitFailure
 	}
 	fmt.Printf("\n\n\n")

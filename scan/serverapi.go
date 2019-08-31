@@ -27,7 +27,6 @@ import (
 	"github.com/future-architect/vuls/cache"
 	"github.com/future-architect/vuls/config"
 	"github.com/future-architect/vuls/models"
-	"github.com/future-architect/vuls/report"
 	"github.com/future-architect/vuls/util"
 	"golang.org/x/xerrors"
 )
@@ -608,13 +607,13 @@ func detectIPSs(timeoutSec int) {
 }
 
 // Scan scan
-func Scan(timeoutSec int) error {
+func Scan(scannedAt time.Time, timeoutSec int) (results models.ScanResults, err error) {
 	if len(servers) == 0 {
-		return xerrors.New("No server defined. Check the configuration")
+		return nil, xerrors.New("No server defined. Check the configuration")
 	}
 
 	if err := setupChangelogCache(); err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		if cache.DB != nil {
@@ -623,12 +622,7 @@ func Scan(timeoutSec int) error {
 	}()
 
 	util.Log.Info("Scanning vulnerable OS packages...")
-	scannedAt := time.Now()
-	dir, err := EnsureResultDir(scannedAt)
-	if err != nil {
-		return err
-	}
-	return scanVulns(dir, scannedAt, timeoutSec)
+	return scanVulns(scannedAt, timeoutSec)
 }
 
 // ViaHTTP scans servers by HTTP header and body
@@ -739,8 +733,7 @@ func setupChangelogCache() error {
 	return nil
 }
 
-func scanVulns(jsonDir string, scannedAt time.Time, timeoutSec int) error {
-	var results models.ScanResults
+func scanVulns(scannedAt time.Time, timeoutSec int) (results models.ScanResults, err error) {
 	parallelExec(func(o osTypeInterface) (err error) {
 		if err = o.preCure(); err != nil {
 			return err
@@ -780,29 +773,7 @@ func scanVulns(jsonDir string, scannedAt time.Time, timeoutSec int) error {
 		}
 	}
 
-	config.Conf.FormatJSON = true
-	ws := []report.ResultWriter{
-		report.LocalFileWriter{CurrentDir: jsonDir},
-	}
-	for _, w := range ws {
-		if err := w.Write(results...); err != nil {
-			return xerrors.Errorf("Failed to write summary report: %s", err)
-		}
-	}
-
-	report.StdoutWriter{}.WriteScanSummary(results...)
-
-	errServerNames := []string{}
-	for _, r := range results {
-		if 0 < len(r.Errors) {
-			errServerNames = append(errServerNames, r.ServerName)
-		}
-	}
-	if 0 < len(errServerNames) {
-		return fmt.Errorf("An error occurred on %s", errServerNames)
-	}
-
-	return nil
+	return results, nil
 }
 
 // EnsureResultDir ensures the directory for scan results
