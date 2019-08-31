@@ -15,30 +15,31 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package models
+package cvedict
 
 import (
 	"strings"
 
-	cvedict "github.com/kotakanbe/go-cve-dictionary/models"
+	"github.com/future-architect/vuls/models"
+	cvedictmodels "github.com/kotakanbe/go-cve-dictionary/models"
 )
 
 // ConvertNvdXMLToModel convert NVD to CveContent
-func ConvertNvdXMLToModel(cveID string, nvd *cvedict.NvdXML) *CveContent {
+func ConvertNvdXMLToModel(cveID string, nvd *cvedictmodels.NvdXML) *models.CveContent {
 	if nvd == nil {
 		return nil
 	}
-	var cpes []Cpe
+	var cpes []models.Cpe
 	for _, c := range nvd.Cpes {
-		cpes = append(cpes, Cpe{
+		cpes = append(cpes, models.Cpe{
 			FormattedString: c.FormattedString,
 			URI:             c.URI,
 		})
 	}
 
-	var refs []Reference
+	var refs []models.Reference
 	for _, r := range nvd.References {
-		refs = append(refs, Reference{
+		refs = append(refs, models.Reference{
 			Link:   r.Link,
 			Source: r.Source,
 		})
@@ -49,8 +50,8 @@ func ConvertNvdXMLToModel(cveID string, nvd *cvedict.NvdXML) *CveContent {
 		cweIDs = append(cweIDs, cid.CweID)
 	}
 
-	return &CveContent{
-		Type:          Nvd,
+	return &models.CveContent{
+		Type:          models.Nvd,
 		CveID:         cveID,
 		Summary:       nvd.Summary,
 		Cvss2Score:    nvd.Cvss2.BaseScore,
@@ -66,28 +67,28 @@ func ConvertNvdXMLToModel(cveID string, nvd *cvedict.NvdXML) *CveContent {
 }
 
 // ConvertJvnToModel convert JVN to CveContent
-func ConvertJvnToModel(cveID string, jvn *cvedict.Jvn) *CveContent {
+func ConvertJvnToModel(cveID string, jvn *cvedictmodels.Jvn) *models.CveContent {
 	if jvn == nil {
 		return nil
 	}
-	var cpes []Cpe
+	var cpes []models.Cpe
 	for _, c := range jvn.Cpes {
-		cpes = append(cpes, Cpe{
+		cpes = append(cpes, models.Cpe{
 			FormattedString: c.FormattedString,
 			URI:             c.URI,
 		})
 	}
 
-	refs := []Reference{}
+	refs := []models.Reference{}
 	for _, r := range jvn.References {
-		refs = append(refs, Reference{
+		refs = append(refs, models.Reference{
 			Link:   r.Link,
 			Source: r.Source,
 		})
 	}
 
-	return &CveContent{
-		Type:          Jvn,
+	return &models.CveContent{
+		Type:          models.Jvn,
 		CveID:         cveID,
 		Title:         jvn.Title,
 		Summary:       jvn.Summary,
@@ -106,21 +107,21 @@ func ConvertJvnToModel(cveID string, jvn *cvedict.Jvn) *CveContent {
 }
 
 // ConvertNvdJSONToModel convert NVD to CveContent
-func ConvertNvdJSONToModel(cveID string, nvd *cvedict.NvdJSON) *CveContent {
+func ConvertNvdJSONToModel(cveID string, nvd *cvedictmodels.NvdJSON) *models.CveContent {
 	if nvd == nil {
 		return nil
 	}
-	var cpes []Cpe
+	var cpes []models.Cpe
 	for _, c := range nvd.Cpes {
-		cpes = append(cpes, Cpe{
+		cpes = append(cpes, models.Cpe{
 			FormattedString: c.FormattedString,
 			URI:             c.URI,
 		})
 	}
 
-	var refs []Reference
+	var refs []models.Reference
 	for _, r := range nvd.References {
-		refs = append(refs, Reference{
+		refs = append(refs, models.Reference{
 			Link:   r.Link,
 			Source: r.Source,
 		})
@@ -136,8 +137,8 @@ func ConvertNvdJSONToModel(cveID string, nvd *cvedict.NvdJSON) *CveContent {
 		desc = append(desc, d.Value)
 	}
 
-	return &CveContent{
-		Type:          Nvd,
+	return &models.CveContent{
+		Type:          models.Nvd,
 		CveID:         cveID,
 		Summary:       strings.Join(desc, "\n"),
 		Cvss2Score:    nvd.Cvss2.BaseScore,

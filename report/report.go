@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/future-architect/vuls/cvedict"
 	"github.com/future-architect/vuls/libmanager"
 
 	"github.com/BurntSushi/toml"
@@ -243,11 +244,11 @@ func fillCveDetail(driver cvedb.DB, r *models.ScanResult) error {
 		return err
 	}
 	for _, d := range ds {
-		nvd := models.ConvertNvdJSONToModel(d.CveID, d.NvdJSON)
+		nvd := cvedict.ConvertNvdJSONToModel(d.CveID, d.NvdJSON)
 		if nvd == nil {
-			nvd = models.ConvertNvdXMLToModel(d.CveID, d.NvdXML)
+			nvd = cvedict.ConvertNvdXMLToModel(d.CveID, d.NvdXML)
 		}
-		jvn := models.ConvertJvnToModel(d.CveID, d.Jvn)
+		jvn := cvedict.ConvertJvnToModel(d.CveID, d.Jvn)
 
 		for cveID, vinfo := range r.ScannedCves {
 			if vinfo.CveID == d.CveID {
