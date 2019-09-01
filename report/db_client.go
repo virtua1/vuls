@@ -79,6 +79,9 @@ func NewCveDB(cnf DBClientConf) (driver cvedb.DB, locked bool, err error) {
 	if config.Conf.CveDict.IsFetchViaHTTP() {
 		return nil, false, nil
 	}
+	if config.Conf.CveDict.UseVulnList() {
+		return nil, false, nil
+	}
 	util.Log.Debugf("open cve-dictionary db (%s)", cnf.CveDictCnf.Type)
 	path := cnf.CveDictCnf.URL
 	if cnf.CveDictCnf.Type == "sqlite3" {
@@ -97,6 +100,9 @@ func NewCveDB(cnf DBClientConf) (driver cvedb.DB, locked bool, err error) {
 // NewOvalDB returns oval db client
 func NewOvalDB(cnf DBClientConf) (driver ovaldb.DB, locked bool, err error) {
 	if config.Conf.OvalDict.IsFetchViaHTTP() {
+		return nil, false, nil
+	}
+	if config.Conf.OvalDict.UseVulnList() {
 		return nil, false, nil
 	}
 	path := cnf.OvalDictCnf.URL
@@ -126,6 +132,9 @@ func NewGostDB(cnf DBClientConf) (driver gostdb.DB, locked bool, err error) {
 	if config.Conf.Gost.IsFetchViaHTTP() {
 		return nil, false, nil
 	}
+	if config.Conf.Gost.UseVulnList() {
+		return nil, false, nil
+	}
 	path := cnf.GostCnf.URL
 	if cnf.GostCnf.Type == "sqlite3" {
 		path = cnf.GostCnf.SQLite3Path
@@ -150,6 +159,9 @@ func NewGostDB(cnf DBClientConf) (driver gostdb.DB, locked bool, err error) {
 // NewExploitDB returns db client for Exploit
 func NewExploitDB(cnf DBClientConf) (driver exploitdb.DB, locked bool, err error) {
 	if config.Conf.Exploit.IsFetchViaHTTP() {
+		return nil, false, nil
+	}
+	if config.Conf.Exploit.UseVulnList() {
 		return nil, false, nil
 	}
 	path := cnf.ExploitCnf.URL

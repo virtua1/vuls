@@ -27,8 +27,9 @@ import (
 	"strings"
 
 	syslog "github.com/RackSec/srslog"
-	valid "github.com/asaskevich/govalidator"
 	"github.com/aquasecurity/fanal/types"
+	"github.com/aquasecurity/trivy/pkg/utils"
+	valid "github.com/asaskevich/govalidator"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/xerrors"
 )
@@ -134,6 +135,7 @@ type Config struct {
 	Slack    SlackConf    `json:"-"`
 	EMail    SMTPConf     `json:"-"`
 	HTTP     HTTPConf     `json:"-"`
+	VulnList VulnListConf `json:"-"`
 	Syslog   SyslogConf   `json:"-"`
 	AWS      AWS          `json:"-"`
 	Azure    Azure        `json:"-"`
@@ -312,6 +314,10 @@ func (c Config) ValidateOnReport() bool {
 		errs = append(errs, httperrs...)
 	}
 
+	if vulnlisterrs := c.VulnList.Validate(); 0 < len(vulnlisterrs) {
+		errs = append(errs, vulnlisterrs...)
+	}
+
 	for _, err := range errs {
 		log.Error(err)
 	}
@@ -381,6 +387,11 @@ func validateDB(dictionaryDBName, dbType, dbPath, dbURL string) error {
 		if dbURL == "" {
 			return xerrors.Errorf(`URL is needed. -%s-url="http://localhost:1323"`,
 				dictionaryDBName)
+		}
+	case "vuln-list":
+		if ok, _ := valid.IsFilePath(dbPath); !ok {
+			return xerrors.Errorf("Vuln list path must be a *Absolute* file path. -%s-path: %s",
+				dictionaryDBName, dbPath)
 		}
 	default:
 		return xerrors.Errorf("%s type must be either 'sqlite3', 'mysql', 'postgres', 'redis' or 'http'.  -%s-type: %s",
@@ -780,6 +791,35 @@ func (c *HTTPConf) Overwrite(cmdOpt HTTPConf) {
 	}
 }
 
+// VulnListConf is VulnList config
+type VulnListConf struct {
+	CacheDir string `json:"-"`
+}
+
+// Validate validates configuration
+func (c *VulnListConf) Validate() (errs []error) {
+	if _, err := valid.ValidateStruct(c); err != nil {
+		errs = append(errs, err)
+	}
+	return errs
+}
+
+const vulnListKey = "VULS_VULN_LIST_CACHE_DIR"
+
+// Overwrite set options with the following priority.
+// 1. Command line option
+// 2. Environment variable
+// 3. config.toml
+func (c *VulnListConf) Overwrite(cmdOpt VulnListConf) {
+	c.CacheDir = utils.DefaultCacheDir()
+	if os.Getenv(vulnListKey) != "" {
+		c.CacheDir = os.Getenv(vulnListKey)
+	}
+	if cmdOpt.CacheDir != "" {
+		c.CacheDir = cmdOpt.CacheDir
+	}
+}
+
 // GoCveDictConf is go-cve-dictionary config
 type GoCveDictConf struct {
 	// DB type of CVE dictionary (sqlite3, mysql, postgres or redis)
@@ -836,6 +876,11 @@ func (cnf *GoCveDictConf) Overwrite(cmdOpt GoCveDictConf) {
 // IsFetchViaHTTP returns wether fetch via http
 func (cnf *GoCveDictConf) IsFetchViaHTTP() bool {
 	return Conf.CveDict.Type == "http"
+}
+
+// UseVulnList returns wether fetch via http
+func (cnf *GoCveDictConf) UseVulnList() bool {
+	return Conf.CveDict.Type == "vuln-list"
 }
 
 // GovalDictConf is goval-dictionary config
@@ -897,6 +942,11 @@ func (cnf *GovalDictConf) IsFetchViaHTTP() bool {
 	return Conf.OvalDict.Type == "http"
 }
 
+// UseVulnList returns wether fetch via http
+func (cnf *GovalDictConf) UseVulnList() bool {
+	return Conf.OvalDict.Type == "vuln-list"
+}
+
 // GostConf is gost config
 type GostConf struct {
 	// DB type for gost dictionary (sqlite3, mysql, postgres or redis)
@@ -955,6 +1005,11 @@ func (cnf *GostConf) IsFetchViaHTTP() bool {
 	return Conf.Gost.Type == "http"
 }
 
+// UseVulnList returns wether fetch via http
+func (cnf *GostConf) UseVulnList() bool {
+	return Conf.Gost.Type == "vuln-list"
+}
+
 // ExploitConf is exploit config
 type ExploitConf struct {
 	// DB type for exploit dictionary (sqlite3, mysql, postgres or redis)
@@ -1011,6 +1066,11 @@ func (cnf *ExploitConf) Overwrite(cmdOpt ExploitConf) {
 // IsFetchViaHTTP returns wether fetch via http
 func (cnf *ExploitConf) IsFetchViaHTTP() bool {
 	return Conf.Exploit.Type == "http"
+}
+
+// UseVulnList returns wether fetch via http
+func (cnf *ExploitConf) UseVulnList() bool {
+	return Conf.Exploit.Type == "vuln-list"
 }
 
 // AWS is aws config

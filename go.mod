@@ -13,7 +13,10 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/aws/aws-sdk-go v1.23.8
 	github.com/boltdb/bolt v1.3.1
+	github.com/briandowns/spinner v0.0.0-20190319032542-ac46072a5a91
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/etcd-io/bbolt v1.3.2
+	github.com/fatih/color v1.7.0
 	github.com/google/subcommands v1.0.1
 	github.com/gosuri/uitable v0.0.3
 	github.com/hashicorp/go-version v1.2.0
@@ -43,6 +46,8 @@ require (
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
+	gopkg.in/cheggaaa/pb.v1 v1.0.28
+	gopkg.in/src-d/go-git.v4 v4.10.0
 )
 
 replace github.com/genuinetools/reg => github.com/tomoyamachi/reg v0.16.1-0.20190706172545-2a2250fd7c00

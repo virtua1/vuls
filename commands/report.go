@@ -20,16 +20,20 @@ package commands
 import (
 	"context"
 	"flag"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	c "github.com/future-architect/vuls/config"
+	"github.com/future-architect/vuls/db"
 	"github.com/future-architect/vuls/exploit"
 	"github.com/future-architect/vuls/gost"
 	"github.com/future-architect/vuls/models"
 	"github.com/future-architect/vuls/oval"
 	"github.com/future-architect/vuls/report"
 	"github.com/future-architect/vuls/util"
+	"github.com/future-architect/vuls/vulnsrc"
 	"github.com/google/subcommands"
 	"github.com/k0kubun/pp"
 	cvelog "github.com/kotakanbe/go-cve-dictionary/log"
@@ -43,6 +47,7 @@ type ReportCmd struct {
 	gostConf    c.GostConf
 	exploitConf c.ExploitConf
 	httpConf    c.HTTPConf
+	vulnList    c.VulnListConf
 }
 
 // Name return subcommand name
@@ -221,6 +226,7 @@ func (p *ReportCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	c.Conf.Gost.Overwrite(p.gostConf)
 	c.Conf.Exploit.Overwrite(p.exploitConf)
 	c.Conf.HTTP.Overwrite(p.httpConf)
+	c.Conf.VulnList.Overwrite(p.vulnList)
 
 	var dir string
 	var err error
@@ -403,6 +409,28 @@ func (p *ReportCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 				return subcommands.ExitFailure
 			}
 		}
+
+		// TODO
+		if err = db.Init(); err != nil {
+			util.Log.Errorf("error init DB update: %s", err)
+			return subcommands.ExitFailure
+		}
+		skipUpdate := false
+		onlyUpdate := ""
+		util.SetCacheDir(c.Conf.VulnList.CacheDir)
+		updateTargets := vulnsrc.UpdateList
+		if onlyUpdate != "" {
+			log.Println("The --only-update option may cause the vulnerability details such as severity and title not to be displayed")
+			updateTargets = strings.Split(onlyUpdate, ",")
+		}
+
+		if !skipUpdate {
+			if err = vulnsrc.Update(updateTargets); err != nil {
+				util.Log.Errorf("error in vulnerability DB update: %s", err)
+				return subcommands.ExitFailure
+			}
+		}
+
 		dbclient, locked, err := report.NewDBClient(report.DBClientConf{
 			CveDictCnf:  c.Conf.CveDict,
 			OvalDictCnf: c.Conf.OvalDict,

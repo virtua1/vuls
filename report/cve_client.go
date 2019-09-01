@@ -29,6 +29,7 @@ import (
 
 	"github.com/future-architect/vuls/config"
 	"github.com/future-architect/vuls/util"
+	"github.com/future-architect/vuls/vulnlist"
 	cvedb "github.com/kotakanbe/go-cve-dictionary/db"
 	cve "github.com/kotakanbe/go-cve-dictionary/models"
 )
@@ -70,6 +71,22 @@ type response struct {
 }
 
 func (api cvedictClient) FetchCveDetails(driver cvedb.DB, cveIDs []string) (cveDetails []cve.CveDetail, err error) {
+	if config.Conf.CveDict.UseVulnList() {
+		for _, cveID := range cveIDs {
+			cveDetail, err := vulnlist.GetCveDetail(cveID)
+			if err != nil {
+				return nil, xerrors.Errorf("Failed to fetch CVE. err: %w", err)
+			}
+			if len(cveDetail.CveID) == 0 {
+				cveDetails = append(cveDetails, cve.CveDetail{
+					CveID: cveID,
+				})
+			} else {
+				cveDetails = append(cveDetails, *cveDetail)
+			}
+		}
+		return
+	}
 	if !config.Conf.CveDict.IsFetchViaHTTP() {
 		for _, cveID := range cveIDs {
 			cveDetail, err := driver.Get(cveID)
