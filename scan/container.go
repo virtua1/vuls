@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/aquasecurity/fanal/analyzer"
+	"github.com/aquasecurity/fanal/cache"
+	"github.com/aquasecurity/fanal/extractor/docker"
+	"github.com/aquasecurity/fanal/utils"
 	"golang.org/x/xerrors"
 
 	fanalos "github.com/aquasecurity/fanal/analyzer/os"
@@ -28,8 +31,8 @@ import (
 	_ "github.com/aquasecurity/fanal/analyzer/os/alpine"
 	_ "github.com/aquasecurity/fanal/analyzer/os/amazonlinux"
 	_ "github.com/aquasecurity/fanal/analyzer/os/debianbase"
-	_ "github.com/aquasecurity/fanal/analyzer/os/opensuse"
 	_ "github.com/aquasecurity/fanal/analyzer/os/redhatbase"
+	_ "github.com/aquasecurity/fanal/analyzer/os/suse"
 
 	// Register package analyzers
 	_ "github.com/aquasecurity/fanal/analyzer/pkg/apk"
@@ -102,15 +105,21 @@ func convertLibWithScanner(libs map[analyzer.FilePath][]godeptypes.Library) ([]m
 func scanImage(c config.ServerInfo) (os *analyzer.OS, pkgs []analyzer.Package, libs map[analyzer.FilePath][]godeptypes.Library, err error) {
 
 	ctx := context.Background()
-	domain := c.Image.Name + ":" + c.Image.Tag
+	domain := c.Image.GetFullName()
 	util.Log.Info("Start fetch container... ", domain)
 
+	fanalCache := cache.Initialize(utils.CacheDir())
 	// Configure dockerOption
 	dockerOption := c.Image.DockerOption
 	if dockerOption.Timeout == 0 {
 		dockerOption.Timeout = 60 * time.Second
 	}
-	files, err := analyzer.Analyze(ctx, domain, dockerOption)
+	ext, err := docker.NewDockerExtractor(dockerOption, fanalCache)
+	if err != nil {
+		return nil, nil, nil, xerrors.Errorf("Failed initialize docker extractor%w", err)
+	}
+	ac := analyzer.Config{Extractor: ext}
+	files, err := ac.Analyze(ctx, domain, dockerOption)
 
 	if err != nil {
 		return nil, nil, nil, xerrors.Errorf("Failed scan files %q, %w", domain, err)

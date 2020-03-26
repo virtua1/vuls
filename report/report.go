@@ -467,6 +467,12 @@ func fillCweDict(r *models.ScanResult) {
 			if rank, ok := cwe.OwaspTopTen2017[id]; ok {
 				entry.OwaspTopTen2017 = rank
 			}
+			if rank, ok := cwe.CweTopTwentyfive2019[id]; ok {
+				entry.CweTopTwentyfive2019 = rank
+			}
+			if rank, ok := cwe.SansTopTwentyfive[id]; ok {
+				entry.SansTopTwentyfive = rank
+			}
 			entry.En = &e
 		} else {
 			util.Log.Debugf("CWE-ID %s is not found in English CWE Dict", id)
@@ -477,6 +483,12 @@ func fillCweDict(r *models.ScanResult) {
 			if e, ok := cwe.CweDictJa[id]; ok {
 				if rank, ok := cwe.OwaspTopTen2017[id]; ok {
 					entry.OwaspTopTen2017 = rank
+				}
+				if rank, ok := cwe.CweTopTwentyfive2019[id]; ok {
+					entry.CweTopTwentyfive2019 = rank
+				}
+				if rank, ok := cwe.SansTopTwentyfive[id]; ok {
+					entry.SansTopTwentyfive = rank
 				}
 				entry.Ja = &e
 			} else {
@@ -530,7 +542,7 @@ func EnsureUUIDs(configPath string, results models.ScanResults) error {
 				server.UUIDs[r.ServerName] = uuid
 			}
 		} else if r.IsImage() {
-			name = fmt.Sprintf("%s:%s@%s", r.Image.Name, r.Image.Tag, r.ServerName)
+			name = fmt.Sprintf("%s%s@%s", r.Image.Tag, r.Image.Digest, r.ServerName)
 			if uuid := getOrCreateServerUUID(r, server); uuid != "" {
 				server.UUIDs[r.ServerName] = uuid
 			}
